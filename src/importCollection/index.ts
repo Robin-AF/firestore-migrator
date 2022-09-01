@@ -129,7 +129,7 @@ function writeCollections(data): Promise<any> {
     return Promise.all(promises);
 }
 
-function writeCollection(data:JSON, path: string): Promise<any> {
+function writeCollection(data:JSON, path: string): Promise<void> {
     return new Promise(async (resolve, reject) => {        
         const colRef = db.collection(path);
 
@@ -186,7 +186,7 @@ async function truncateCollection(colRef: FirebaseFirestore.CollectionReference)
     await colRef.get().then(async (snap) => {
         for (let doc of snap.docs) {
             // recurse sub-collections
-            const subCollPaths = await doc.ref.getCollections();
+            const subCollPaths = await doc.ref.listCollections();
             for (let subColRef of subCollPaths) {
                 await truncateCollection(subColRef);
             }
@@ -205,14 +205,14 @@ function dataFromJSON(json) {
 }
 
 function dataFromSheet(sheet)  {
-    const json = XLSX.utils.sheet_to_json(sheet);
+    const json = XLSX.utils.sheet_to_json(sheet, {raw: true});
     return dataFromJSON(json);
 }
 
 function JSONfromCSV(file:string) {
-    const book = XLSX.readFile(file);
+    const book = XLSX.readFile(file, {codepage: 65001});
     const sheet = book.Sheets['Sheet1'];
-    return XLSX.utils.sheet_to_json(sheet);
+    return XLSX.utils.sheet_to_json(sheet, {raw: true});
 }
 
 function datafromCSV(file:string) {
@@ -373,7 +373,7 @@ function readCSV(file: string, collections: string[]): Promise<any> {
 function readXLSXBook(path, collections: string[]): Promise<any> {
 
     return new Promise((resolve, reject) => {
-        const book = XLSX.readFile(path);
+        const book = XLSX.readFile(path, {codepage: 65001, type: "binary" });
         const sheetCount = book.SheetNames.length;
         const indexSheet = book.Sheets['INDEX'];
         let data = {};
@@ -402,7 +402,7 @@ function readXLSXBook(path, collections: string[]): Promise<any> {
             return;
         }
 
-        const index = XLSX.utils.sheet_to_json(indexSheet);
+        const index = XLSX.utils.sheet_to_json(indexSheet, {raw: true});
 
         // Selected Collections and Sub Colls from Indexed Workbook
         if (collections[0] !== '/') {
